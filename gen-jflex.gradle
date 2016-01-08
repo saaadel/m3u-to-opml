@@ -1,0 +1,40 @@
+def jflexDescription = 'Generate lexer Java classes for JFlex files'
+
+def generatedJavaDir = file("$buildDir/generated-sources").absolutePath;
+//def generatedJavaDir = file("$projectDir/src/main/java").absolutePath;
+def sourceJFlexDir = file("$projectDir/src/main/resources").absolutePath;
+def jflexAntMask = "**/*.jflex";
+def jflexMainClass = "jflex.Main";
+
+task generateJFlexLexerSources() {
+    description = jflexDescription
+    outputs.dir file(generatedJavaDir)
+    outputs.upToDateWhen { false }
+
+    fileTree(dir: sourceJFlexDir, include: jflexAntMask).each { file ->
+        doLast {
+            def absoluteNormalizedPath = new File("$file.path").absolutePath;
+            def relPath = absoluteNormalizedPath.replace(sourceJFlexDir, '');
+            if (!relPath.equals(absoluteNormalizedPath)) {
+                //del separator
+                relPath = relPath.substring(1);
+            }
+            def relDir = new File(relPath).parent;
+
+            javaexec {
+                classpath = sourceSets.main.runtimeClasspath
+                main = jflexMainClass
+                args = ["--verbose", "-d", generatedJavaDir + file.separator + relDir, "$file.path"]
+            }
+        }
+    }
+}
+compileJava.dependsOn generateJFlexLexerSources
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    runtime group: 'de.jflex', name: 'jflex', version: '1.6.1'
+}
